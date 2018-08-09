@@ -110,7 +110,7 @@ public class Pinturi3Server implements Runnable {
         notify();
     }
 
-    public void enviarMesajeClientes(String cliente, int[] mensaje) {
+    public void enviarMesajeClientes(String cliente, Object[] mensaje) {
         Enumeration cons = conexiones.elements();
 
         while (cons.hasMoreElements()) {
@@ -133,8 +133,7 @@ public class Pinturi3Server implements Runnable {
             OutputStream socketSalida;
             InputStream socketEntrada;
             String nombreCliente;
-            String mensajeInicio;
-            int[] mensajeCliente;
+            Object[] mensajeCliente;
             InetAddress direccion;
 
             try {
@@ -148,9 +147,9 @@ public class Pinturi3Server implements Runnable {
                 direccion = socketCliente.getInetAddress();
                 nombreCliente = direccion.getHostName();
                 
-                mensajeCliente = null;
+                mensajeCliente = (Object[])flujoEntrada.readObject();
 
-                while ((mensajeCliente = (int[]) flujoEntrada.readObject()) != null) {
+                while ((mensajeCliente = (Object[])flujoEntrada.readObject()) != null) {
                     enviarMesajeClientes(nombreCliente, mensajeCliente);
                 }
             } catch (Exception e) {
@@ -170,7 +169,7 @@ public class Pinturi3Server implements Runnable {
             }
         }
 
-        public void enviarMensaje(int[] mensaje) {
+        public void enviarMensaje(Object[] mensaje) {
             try {
                 flujoSalida.writeObject(mensaje);
                 flujoSalida.flush();
