@@ -146,6 +146,7 @@ public class Pinturi3Server implements Runnable {
 
                 direccion = socketCliente.getInetAddress();
                 nombreCliente = direccion.getHostName();
+                System.out.println("Nueva conexion desde: "+nombreCliente);
                 
                 mensajeCliente = (Object[])flujoEntrada.readObject();
 
