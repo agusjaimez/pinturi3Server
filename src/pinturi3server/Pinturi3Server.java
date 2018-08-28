@@ -5,6 +5,7 @@
  */
 package pinturi3server;
 
+import java.awt.Image;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,7 +31,7 @@ public class Pinturi3Server implements Runnable {
 
     private int puerto = 42066;
     private int numConexiones = 0;
-    private Vector conexiones = null;
+    private Vector<ConexionCliente> conexiones = null;
 
     public Pinturi3Server() {
     }
@@ -110,7 +111,7 @@ public class Pinturi3Server implements Runnable {
         notify();
     }
 
-    public void enviarMesajeClientes(String cliente, Object[] mensaje) {
+    public void enviarMesajeClientes(String cliente, int[] mensaje) {
         Enumeration cons = conexiones.elements();
 
         while (cons.hasMoreElements()) {
@@ -118,12 +119,22 @@ public class Pinturi3Server implements Runnable {
             c.enviarMensaje(mensaje);
         }
     }
+    
+        /*public void enviarMesajeClientesInicio(String cliente, String[] mensaje) {
+        Enumeration cons = conexiones.elements();
+
+        while (cons.hasMoreElements()) {
+            ConexionCliente c = (ConexionCliente) cons.nextElement();
+            c.enviarMensajeInicio(mensaje);
+        }
+    }*/
 
     class ConexionCliente implements Runnable {
 
         private Socket socketCliente = null;
         private ObjectOutputStream flujoSalida = null;
         private ObjectInputStream flujoEntrada = null;
+        private InetAddress direccion;
 
         public ConexionCliente(Socket s) {
             socketCliente = s;
@@ -132,9 +143,9 @@ public class Pinturi3Server implements Runnable {
         public void run() {
             OutputStream socketSalida;
             InputStream socketEntrada;
-            String nombreCliente;
-            Object[] mensajeCliente;
-            InetAddress direccion;
+            String nombreCliente = null;
+            //String[] mensajeInicio;
+            int[] mensajeCliente;
 
             try {
                 socketSalida = socketCliente.getOutputStream();
@@ -146,11 +157,16 @@ public class Pinturi3Server implements Runnable {
 
                 direccion = socketCliente.getInetAddress();
                 nombreCliente = direccion.getHostName();
-                System.out.println("Nueva conexion desde: "+nombreCliente);
-                
-                mensajeCliente = (Object[])flujoEntrada.readObject();
+                System.out.println("Nueva conexion desde: " + nombreCliente);
+                /*
+                mensajeInicio = new String[conexiones.size()];
+                for (int i = 0; i < conexiones.size(); i++) {
+                    mensajeInicio[i] = conexiones.elementAt(i).getDireccion();
+                }
+                enviarMesajeClientesInicio(nombreCliente, mensajeInicio);*/
+                mensajeCliente = (int[]) flujoEntrada.readObject();
 
-                while ((mensajeCliente = (Object[])flujoEntrada.readObject()) != null) {
+                while ((mensajeCliente = (int[]) flujoEntrada.readObject()) != null) {
                     enviarMesajeClientes(nombreCliente, mensajeCliente);
                 }
             } catch (Exception e) {
@@ -167,16 +183,31 @@ public class Pinturi3Server implements Runnable {
                     e.printStackTrace();
                 }
                 conexionCerrada(this);
+                System.out.println("Conexión cerrada desde: " + nombreCliente);
+
             }
         }
 
-        public void enviarMensaje(Object[] mensaje) {
+        public void enviarMensaje(int[] mensaje) {
             try {
                 flujoSalida.writeObject(mensaje);
                 flujoSalida.flush();
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+        
+        /*public void enviarMensajeInicio(String[] mensaje) {
+            try {
+                flujoSalida.writeObject(mensaje);
+                flujoSalida.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }*/
+
+        public String getDireccion() {
+            return direccion.getHostName();
         }
 
     }
