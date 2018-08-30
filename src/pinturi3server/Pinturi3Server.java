@@ -18,8 +18,11 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.Enumeration;
 import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -32,11 +35,12 @@ public class Pinturi3Server implements Runnable {
     private int puerto = 42066;
     private int numConexiones = 0;
     private Vector<ConexionCliente> conexiones = null;
+    private Conexion_Mysql cnx=new Conexion_Mysql();
 
     public Pinturi3Server() {
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SQLException, ClassNotFoundException {
         String puerto = null;
 
         //Se puede recibir el puerto a escuchar.
@@ -49,7 +53,8 @@ public class Pinturi3Server implements Runnable {
         ps.iniciar();
     }
 
-    private void iniciar() {
+    private void iniciar() throws SQLException, ClassNotFoundException {
+        cnx.resetear(cnx.obtener());
         this.conexiones = new Vector(MAX_CONEXIONES);
         Thread t = new Thread(this);
         t.start();
@@ -120,14 +125,6 @@ public class Pinturi3Server implements Runnable {
         }
     }
     
-        /*public void enviarMesajeClientesInicio(String cliente, String[] mensaje) {
-        Enumeration cons = conexiones.elements();
-
-        while (cons.hasMoreElements()) {
-            ConexionCliente c = (ConexionCliente) cons.nextElement();
-            c.enviarMensajeInicio(mensaje);
-        }
-    }*/
 
     class ConexionCliente implements Runnable {
 
@@ -144,7 +141,6 @@ public class Pinturi3Server implements Runnable {
             OutputStream socketSalida;
             InputStream socketEntrada;
             String nombreCliente = null;
-            //String[] mensajeInicio;
             int[] mensajeCliente;
 
             try {
@@ -156,14 +152,9 @@ public class Pinturi3Server implements Runnable {
                 System.out.println(flujoEntrada);
 
                 direccion = socketCliente.getInetAddress();
-                nombreCliente = direccion.getHostName();
+                nombreCliente = direccion.getHostAddress();
                 System.out.println("Nueva conexion desde: " + nombreCliente);
-                /*
-                mensajeInicio = new String[conexiones.size()];
-                for (int i = 0; i < conexiones.size(); i++) {
-                    mensajeInicio[i] = conexiones.elementAt(i).getDireccion();
-                }
-                enviarMesajeClientesInicio(nombreCliente, mensajeInicio);*/
+
                 mensajeCliente = (int[]) flujoEntrada.readObject();
 
                 while ((mensajeCliente = (int[]) flujoEntrada.readObject()) != null) {
@@ -183,6 +174,13 @@ public class Pinturi3Server implements Runnable {
                     e.printStackTrace();
                 }
                 conexionCerrada(this);
+                try {
+                    cnx.cerrar(cnx.obtener(),nombreCliente);
+                } catch (SQLException ex) {
+                    Logger.getLogger(Pinturi3Server.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (ClassNotFoundException ex) {
+                    Logger.getLogger(Pinturi3Server.class.getName()).log(Level.SEVERE, null, ex);
+                }
                 System.out.println("Conexión cerrada desde: " + nombreCliente);
 
             }
@@ -195,19 +193,6 @@ public class Pinturi3Server implements Runnable {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
-        
-        /*public void enviarMensajeInicio(String[] mensaje) {
-            try {
-                flujoSalida.writeObject(mensaje);
-                flujoSalida.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }*/
-
-        public String getDireccion() {
-            return direccion.getHostName();
         }
 
     }
